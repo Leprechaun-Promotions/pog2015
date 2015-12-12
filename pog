@@ -1,0 +1,103 @@
+#!/usr/bin/env php
+
+<?php
+
+	// load pog_annual_sales_ytd2015 CSV
+	
+	$pog_sales_file = fopen( 'pog_annual_sales_ytd2015.csv' , 'r' );
+	
+	$count1 = 1;
+	
+	$pog_members = array();
+	
+	while ( !feof( $pog_sales_file ) ) {
+		
+		$line = trim( fgets( $pog_sales_file ) );
+		
+		if ( $count1 != 1 ) {
+			
+			$quotes1 = strpos( $line , '"' );
+			$quotes2 = strrpos( $line , '"' );
+			$comma = strrpos( $line , ',' );
+			
+			$total = intval( substr( $line , $comma + 1 ) );
+			$member = substr( $line , $quotes1 + 1 , $quotes2 - 1 );
+			
+			if( $total >= 2000 && $member !== 'TOTAL') {
+				
+				$pog_members[] = $member;
+			}
+		}
+		
+		$count1++;
+	}
+	
+	var_dump( $pog_members );
+	
+	// load pog_addresses
+	
+	$pog_addresses_file = fopen( 'pog_addresses_2015.CSV' , 'r' );
+	
+	$count2 = 1;
+	
+	$pog_addresses = array();
+	$pog_addresses_customers = array();
+	
+	while ( !feof( $pog_addresses_file ) ) {
+		
+		$line = trim( fgets( $pog_addresses_file ) );
+		
+		if( $count2 != 1 ) {
+			
+			$pog_address = str_getcsv( $line );
+			
+			if( count( $pog_address ) >= 2 ) {
+				
+				$pog_addresses_customers[] = $pog_address[1];
+				
+				if( in_array( $pog_address[1] , $pog_members ) ) {
+				
+					$pog_addresses[] = $line;
+				}
+			}
+		}
+		
+		$count2++;
+	}
+	
+	var_dump( $pog_addresses );
+	
+	var_dump( $pog_addresses_customers );
+	
+	$pog_addresses_missing = array();
+	
+	foreach( $pog_members as $member ) {
+		
+		if( !in_array( $member , $pog_addresses_customers ) ) {
+			
+			$pog_addresses_missing[] = $member;
+		}
+	}
+	
+	var_dump( $pog_addresses_missing );
+	
+	// extract address of each POG Member in Annual Sales YTD array
+	
+	// save data to new CSV file
+	
+	$export_file = fopen( 'pog_customers.csv' , 'w' );
+	$export_missing_file = fopen( 'pog_missing_customers.csv' , 'w' );
+	
+	foreach( $pog_addresses as $address ) {
+		
+		$status = fwrite( $export_file , strtoupper( substr( $address . "\n" , 1 ) ) );
+	}
+	
+	foreach( $pog_addresses_missing as $missing_member ) {
+		
+		$status = fwrite( $export_missing_file , strtoupper( $missing_member . "\n" ) );
+	}
+	
+	exit(0);
+	
+?>
